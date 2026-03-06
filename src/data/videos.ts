@@ -1,4 +1,5 @@
-import { Video, Playlist } from '@/types/video';
+import type { Video, Playlist, VideoCategory } from '@/types/video';
+export type { Video, Playlist, VideoCategory };
 
 export const mockVideos: Video[] = [
   {
