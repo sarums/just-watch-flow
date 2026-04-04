@@ -72,6 +72,11 @@
   }
 }
 
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: hsl(var(--card)); }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 2px; }
+
 @layer utilities {
   .text-gradient {
     @apply bg-clip-text text-transparent;
