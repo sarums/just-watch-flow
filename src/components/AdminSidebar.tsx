@@ -11,8 +11,7 @@ const sections = [
   {
     label: 'Content',
     items: [
-      { title: 'Add Video', url: '/admin/videos', icon: '➕' },
-      { title: 'All Videos', url: '/admin/videos', icon: '🎞️' },
+      { title: 'Videos', url: '/admin/videos', icon: '🎞️' },
       { title: 'Playlists', url: '/admin/playlists', icon: '📋' },
       { title: 'Categories', url: '/admin/categories', icon: '🏷️' },
       { title: 'Featured', url: '/admin/featured', icon: '⭐' },

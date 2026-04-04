@@ -75,7 +75,7 @@ export default function AdminCategories() {
             <Input type="number" value={form.sort_order} onChange={e => setForm({ ...form, sort_order: parseInt(e.target.value) || 0 })} className="bg-secondary border-border w-20" />
           </div>
         </div>
-        <button onClick={() => { openCreate(); handleSave(); }} className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-bold text-sm px-5 py-2.5 rounded-lg hover:opacity-90 transition-opacity w-full justify-center">
+        <button onClick={openCreate} className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-bold text-sm px-5 py-2.5 rounded-lg hover:opacity-90 transition-opacity w-full justify-center">
           ➕ Add to Menu
         </button>
       </div>
