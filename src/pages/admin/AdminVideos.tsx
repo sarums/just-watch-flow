@@ -2,50 +2,42 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { Pencil, Trash2, Search, Star } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
 type Video = {
-  id: string;
-  title: string;
-  description: string;
-  source: string;
-  embed_url: string;
-  thumbnail_url: string;
-  category: string;
-  duration: string;
-  views: number;
-  featured: boolean;
-  tags: string[];
-  created_at: string;
+  id: string; title: string; description: string; source: string; embed_url: string;
+  thumbnail_url: string; category: string; duration: string; views: number;
+  featured: boolean; tags: string[]; created_at: string;
 };
 
 const emptyVideo = {
-  title: '',
-  description: '',
-  source: 'dailymotion' as string,
-  embed_url: '',
-  thumbnail_url: '',
-  category: '',
-  duration: '0:00',
-  views: 0,
-  featured: false,
-  tags: [] as string[],
+  title: '', description: '', source: 'dailymotion' as string, embed_url: '',
+  thumbnail_url: '', category: '', duration: '0:00', views: 0,
+  featured: false, tags: [] as string[],
+};
+
+const fmtViews = (n: number) => {
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return String(n || 0);
 };
 
 export default function AdminVideos() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [categories, setCategories] = useState<{ value: string; label: string }[]>([]);
   const [search, setSearch] = useState('');
+  const [filterSource, setFilterSource] = useState('');
+  const [filterCat, setFilterCat] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Video | null>(null);
   const [form, setForm] = useState(emptyVideo);
   const [tagsInput, setTagsInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [platform, setPlatform] = useState('dailymotion');
 
   const loadData = async () => {
     const [vRes, cRes] = await Promise.all([
@@ -58,33 +50,26 @@ export default function AdminVideos() {
 
   useEffect(() => { loadData(); }, []);
 
-  const filtered = videos.filter(v =>
-    v.title.toLowerCase().includes(search.toLowerCase()) ||
-    v.category.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = videos.filter(v => {
+    const mQ = !search || v.title.toLowerCase().includes(search.toLowerCase()) || v.category.toLowerCase().includes(search.toLowerCase());
+    const mS = !filterSource || v.source === filterSource;
+    const mC = !filterCat || v.category === filterCat;
+    return mQ && mS && mC;
+  });
 
   const openCreate = () => {
     setEditing(null);
     setForm(emptyVideo);
     setTagsInput('');
+    setPlatform('dailymotion');
     setDialogOpen(true);
   };
 
   const openEdit = (video: Video) => {
     setEditing(video);
-    setForm({
-      title: video.title,
-      description: video.description,
-      source: video.source,
-      embed_url: video.embed_url,
-      thumbnail_url: video.thumbnail_url,
-      category: video.category,
-      duration: video.duration,
-      views: video.views,
-      featured: video.featured,
-      tags: video.tags,
-    });
+    setForm({ title: video.title, description: video.description, source: video.source, embed_url: video.embed_url, thumbnail_url: video.thumbnail_url, category: video.category, duration: video.duration, views: video.views, featured: video.featured, tags: video.tags });
     setTagsInput(video.tags.join(', '));
+    setPlatform(video.source);
     setDialogOpen(true);
   };
 
@@ -93,11 +78,9 @@ export default function AdminVideos() {
       toast({ title: 'Missing fields', description: 'Title, URL, and category are required.', variant: 'destructive' });
       return;
     }
-
     setLoading(true);
     const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
-    const payload = { ...form, tags };
-
+    const payload = { ...form, source: platform, tags };
     try {
       if (editing) {
         const { error } = await supabase.from('videos').update(payload).eq('id', editing.id);
@@ -120,138 +103,203 @@ export default function AdminVideos() {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this video?')) return;
     const { error } = await supabase.from('videos').delete().eq('id', id);
-    if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Video deleted' });
-      loadData();
-    }
+    if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    else { toast({ title: 'Video deleted' }); loadData(); }
   };
+
+  const toggleFeatured = async (id: string, current: boolean) => {
+    const { error } = await supabase.from('videos').update({ featured: !current }).eq('id', id);
+    if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    else { toast({ title: current ? 'Removed from featured' : 'Set as featured' }); loadData(); }
+  };
+
+  const platforms = [
+    { value: 'dailymotion', label: '📺 Dailymotion', activeClass: 'border-blue-500 text-blue-400 bg-blue-500/[0.08]' },
+    { value: 'rumble', label: '🟢 Rumble', activeClass: 'border-green-500 text-green-400 bg-green-500/[0.08]' },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <h1 className="font-display text-2xl font-bold">Videos</h1>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search videos…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-9 w-48"
-            />
-          </div>
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Add Video</Button>
+      <h1 className="font-['Bebas_Neue'] text-3xl tracking-[2px]">All Videos</h1>
+
+      {/* TOOLBAR */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 flex-1 min-w-[200px]">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search videos..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="bg-transparent border-none outline-none text-foreground text-sm w-full placeholder:text-muted-foreground"
+          />
+        </div>
+        <select
+          value={filterSource}
+          onChange={e => setFilterSource(e.target.value)}
+          className="bg-card border border-border text-foreground text-sm px-3 py-2 rounded-lg outline-none"
+        >
+          <option value="">All Platforms</option>
+          <option value="dailymotion">Dailymotion</option>
+          <option value="rumble">Rumble</option>
+        </select>
+        <select
+          value={filterCat}
+          onChange={e => setFilterCat(e.target.value)}
+          className="bg-card border border-border text-foreground text-sm px-3 py-2 rounded-lg outline-none"
+        >
+          <option value="">All Categories</option>
+          {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+        </select>
+        <button onClick={openCreate} className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-bold text-sm px-5 py-2 rounded-lg hover:opacity-90 transition-opacity">
+          ➕ Add Video
+        </button>
+      </div>
+
+      {/* TABLE */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-secondary">
+                {['Thumb', 'Title', 'Source', 'Category', 'Views', 'Featured', 'Actions'].map(h => (
+                  <th key={h} className="text-left text-[0.68rem] font-bold tracking-[1.5px] uppercase text-muted-foreground px-4 py-2.5 border-b border-border">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={7} className="text-center py-12 text-muted-foreground">
+                  <div className="text-3xl mb-2 opacity-40">🎬</div>
+                  <div className="font-semibold">No videos found</div>
+                  <p className="text-xs mt-1">Try a different filter or add a new video</p>
+                </td></tr>
+              ) : filtered.map(v => (
+                <tr key={v.id} className="border-b border-border last:border-0 hover:bg-secondary/50 transition-colors">
+                  <td className="px-4 py-2.5">
+                    <div className="w-14 aspect-video rounded bg-secondary overflow-hidden">
+                      {v.thumbnail_url && <img src={v.thumbnail_url} alt="" className="w-full h-full object-cover" />}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="font-semibold truncate max-w-[260px]">{v.title}</div>
+                    <div className="text-[0.68rem] text-muted-foreground mt-0.5 font-mono">{v.duration || ''}</div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <span className={`inline-flex items-center gap-1 text-[0.72rem] font-bold px-2 py-0.5 rounded uppercase ${v.source === 'dailymotion' ? 'bg-blue-500 text-white' : 'bg-green-500 text-black'}`}>
+                      {v.source === 'dailymotion' ? 'DM' : 'RB'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-xs text-muted-foreground capitalize">{v.category || '—'}</td>
+                  <td className="px-4 py-2.5 font-mono text-xs text-primary">{fmtViews(v.views)}</td>
+                  <td className="px-4 py-2.5">
+                    {v.featured ? (
+                      <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded bg-primary/15 border border-primary/30 text-primary">⭐ Hero</span>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex gap-1">
+                      <button onClick={() => openEdit(v)} className="text-xs font-semibold px-2.5 py-1 rounded bg-blue-500/10 border border-blue-500/25 text-blue-400 hover:bg-blue-500 hover:text-white transition-all">✏️ Edit</button>
+                      <button onClick={() => toggleFeatured(v.id, v.featured)} className="text-xs font-semibold px-2.5 py-1 rounded bg-primary/10 border border-primary/25 text-primary hover:bg-primary hover:text-primary-foreground transition-all" title={v.featured ? 'Remove' : 'Feature'}>⭐</button>
+                      <button onClick={() => handleDelete(v.id)} className="text-xs font-semibold px-2.5 py-1 rounded bg-destructive/10 border border-destructive/25 text-destructive hover:bg-destructive hover:text-white transition-all">🗑️</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            No videos found. Click "Add Video" to get started.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-3">
-          {filtered.map(v => (
-            <Card key={v.id}>
-              <CardContent className="flex items-center gap-4 py-3">
-                {v.thumbnail_url && (
-                  <img src={v.thumbnail_url} alt="" className="h-16 w-28 rounded object-cover shrink-0 bg-secondary" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{v.title}</p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                    <span className={`rounded px-1.5 py-0.5 uppercase font-semibold ${
-                      v.source === 'dailymotion' ? 'bg-blue-600/20 text-blue-400' : 'bg-green-600/20 text-green-400'
-                    }`}>{v.source}</span>
-                    <span className="capitalize">{v.category}</span>
-                    <span>{Number(v.views).toLocaleString()} views</span>
-                    {v.featured && <span className="text-primary">★ Featured</span>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" onClick={() => openEdit(v)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(v.id)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
+      {/* ADD/EDIT DIALOG */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editing ? 'Edit Video' : 'Add Video'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Title *</label>
-              <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+        <DialogContent className="max-w-[600px] max-h-[90vh] overflow-y-auto bg-card border-border p-0">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-secondary sticky top-0 z-10">
+            <DialogHeader className="p-0">
+              <DialogTitle className="font-['Bebas_Neue'] text-xl tracking-[2px] text-primary">
+                {editing ? '✏️ Edit Video' : '🎬 Add Video'}
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+          <div className="p-6 space-y-5">
+            {/* Platform Toggle */}
+            <div className="grid grid-cols-2 gap-3">
+              {platforms.map(p => (
+                <button
+                  key={p.value}
+                  onClick={() => { setPlatform(p.value); setForm(f => ({ ...f, source: p.value })); }}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-lg font-semibold text-sm border-2 transition-all ${
+                    platform === p.value ? p.activeClass : 'border-border bg-secondary text-muted-foreground'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
-            <div>
-              <label className="text-sm font-medium">Embed URL *</label>
-              <Input value={form.embed_url} onChange={e => setForm({ ...form, embed_url: e.target.value })} placeholder="https://www.dailymotion.com/embed/video/..." />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Thumbnail URL</label>
-              <Input value={form.thumbnail_url} onChange={e => setForm({ ...form, thumbnail_url: e.target.value })} />
-            </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Source *</label>
-                <Select value={form.source} onValueChange={v => setForm({ ...form, source: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dailymotion">Dailymotion</SelectItem>
-                    <SelectItem value="rumble">Rumble</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-1">
+                <label className="text-[0.7rem] font-bold tracking-[1px] uppercase text-muted-foreground">Embed URL *</label>
+                <Input value={form.embed_url} onChange={e => setForm({ ...form, embed_url: e.target.value })} placeholder="https://..." className="bg-secondary border-border" />
               </div>
-              <div>
-                <label className="text-sm font-medium">Category *</label>
+              <div className="space-y-1">
+                <label className="text-[0.7rem] font-bold tracking-[1px] uppercase text-muted-foreground">Duration</label>
+                <Input value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} placeholder="12:34" className="bg-secondary border-border" />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[0.7rem] font-bold tracking-[1px] uppercase text-muted-foreground">Title *</label>
+              <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="bg-secondary border-border" />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[0.7rem] font-bold tracking-[1px] uppercase text-muted-foreground">Description</label>
+              <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} className="bg-secondary border-border resize-y min-h-[80px]" />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="text-[0.7rem] font-bold tracking-[1px] uppercase text-muted-foreground">Category *</label>
                 <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                  <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Select…" /></SelectTrigger>
+                  <SelectContent>{categories.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[0.7rem] font-bold tracking-[1px] uppercase text-muted-foreground">Views</label>
+                <Input type="number" value={form.views} onChange={e => setForm({ ...form, views: parseInt(e.target.value) || 0 })} className="bg-secondary border-border" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[0.7rem] font-bold tracking-[1px] uppercase text-muted-foreground">Featured</label>
+                <Select value={form.featured ? 'yes' : 'no'} onValueChange={v => setForm({ ...form, featured: v === 'yes' })}>
+                  <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {categories.map(c => (
-                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                    ))}
+                    <SelectItem value="no">No</SelectItem>
+                    <SelectItem value="yes">⭐ Yes — Hero</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Duration</label>
-                <Input value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} placeholder="12:34" />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Views</label>
-                <Input type="number" value={form.views} onChange={e => setForm({ ...form, views: parseInt(e.target.value) || 0 })} />
-              </div>
+
+            <div className="space-y-1">
+              <label className="text-[0.7rem] font-bold tracking-[1px] uppercase text-muted-foreground">Thumbnail URL</label>
+              <Input value={form.thumbnail_url} onChange={e => setForm({ ...form, thumbnail_url: e.target.value })} className="bg-secondary border-border" />
+              {form.thumbnail_url && (
+                <div className="w-full aspect-video rounded-lg bg-secondary border-2 border-dashed border-border overflow-hidden mt-2">
+                  <img src={form.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                </div>
+              )}
             </div>
-            <div>
-              <label className="text-sm font-medium">Description</label>
-              <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} />
+
+            <div className="space-y-1">
+              <label className="text-[0.7rem] font-bold tracking-[1px] uppercase text-muted-foreground">Tags (comma-separated)</label>
+              <Input value={tagsInput} onChange={e => setTagsInput(e.target.value)} placeholder="tag1, tag2, tag3" className="bg-secondary border-border" />
             </div>
-            <div>
-              <label className="text-sm font-medium">Tags (comma-separated)</label>
-              <Input value={tagsInput} onChange={e => setTagsInput(e.target.value)} placeholder="tag1, tag2, tag3" />
-            </div>
-            <div className="flex items-center gap-2">
-              <input type="checkbox" id="featured" checked={form.featured} onChange={e => setForm({ ...form, featured: e.target.checked })} className="rounded" />
-              <label htmlFor="featured" className="text-sm">Featured on homepage</label>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={loading}>{loading ? 'Saving…' : 'Save'}</Button>
-            </div>
+
+            <button onClick={handleSave} disabled={loading} className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-bold text-sm px-5 py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
+              {loading ? 'Saving…' : editing ? '💾 Save Changes' : '➕ Add Video'}
+            </button>
           </div>
         </DialogContent>
       </Dialog>
