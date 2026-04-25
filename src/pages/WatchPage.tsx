@@ -1,14 +1,25 @@
 import { useParams, Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { VideoCard } from '@/components/VideoCard';
-import { getVideoById, mockVideos, getPlaylistById, formatViews } from '@/data/videos';
+import { formatViews } from '@/data/videos';
+import { useVideo, useAllVideos } from '@/hooks/useVideos';
 import { Eye, Share2, ArrowLeft, ListVideo } from 'lucide-react';
 import { useState } from 'react';
 
 const WatchPage = () => {
   const { id } = useParams<{ id: string }>();
-  const video = getVideoById(id || '');
+  const { data: video, isLoading } = useVideo(id);
+  const { data: allVideos = [] } = useAllVideos();
   const [copied, setCopied] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container py-20 text-center text-muted-foreground">Loading…</div>
+      </div>
+    );
+  }
 
   if (!video) {
     return (
@@ -22,18 +33,16 @@ const WatchPage = () => {
     );
   }
 
-  const playlist = video.playlistId ? getPlaylistById(video.playlistId) : null;
-  const playlistVideos = playlist 
-    ? playlist.videoIds.map(vid => mockVideos.find(v => v.id === vid)).filter(Boolean)
-    : [];
-  const currentIndex = playlist ? playlist.videoIds.indexOf(video.id) : -1;
+  const playlist = null as any;
+  const playlistVideos: any[] = [];
+  const currentIndex = -1;
 
   // Suggested: same category, different video
-  const suggested = mockVideos
+  const suggested = allVideos
     .filter(v => v.id !== video.id && v.category === video.category)
     .slice(0, 6);
   const moreSuggested = suggested.length < 4
-    ? mockVideos.filter(v => v.id !== video.id && !suggested.find(s => s.id === v.id)).slice(0, 6 - suggested.length)
+    ? allVideos.filter(v => v.id !== video.id && !suggested.find(s => s.id === v.id)).slice(0, 6 - suggested.length)
     : [];
   const allSuggested = [...suggested, ...moreSuggested];
 

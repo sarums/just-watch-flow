@@ -1,14 +1,15 @@
 import { useParams } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { VideoRow } from '@/components/VideoRow';
-import { getVideosByCategory } from '@/data/videos';
+import { useAllVideos } from '@/hooks/useVideos';
 import { CATEGORIES } from '@/types/video';
 import { Link } from 'react-router-dom';
 
 const CategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const category = CATEGORIES.find(c => c.value === slug);
-  const videos = slug ? getVideosByCategory(slug) : [];
+  const { data: all = [], isLoading } = useAllVideos();
+  const videos = slug ? all.filter(v => v.category === slug) : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -22,7 +23,9 @@ const CategoryPage = () => {
             <p className="text-muted-foreground text-sm mb-6">
               {videos.length} video{videos.length !== 1 ? 's' : ''} in this category
             </p>
-            {videos.length > 0 ? (
+            {isLoading ? (
+              <p className="text-muted-foreground py-12 text-center">Loading…</p>
+            ) : videos.length > 0 ? (
               <VideoRow title="" videos={videos} />
             ) : (
               <p className="text-muted-foreground py-12 text-center">No videos in this category yet.</p>
