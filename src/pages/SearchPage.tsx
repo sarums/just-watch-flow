@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { VideoCard } from '@/components/VideoCard';
-import { searchVideos } from '@/data/videos';
+import { useAllVideos } from '@/hooks/useVideos';
 import { useState } from 'react';
 
 const SearchPage = () => {
@@ -9,7 +9,15 @@ const SearchPage = () => {
   const query = searchParams.get('q') || '';
   const [sourceFilter, setSourceFilter] = useState<string>('both');
 
-  const results = searchVideos(query, sourceFilter);
+  const { data: all = [] } = useAllVideos();
+  const q = query.toLowerCase();
+  const results = all.filter(v => {
+    const matchesQuery = !q || v.title.toLowerCase().includes(q) ||
+      v.tags.some(t => t.toLowerCase().includes(q)) ||
+      v.description.toLowerCase().includes(q);
+    const matchesSource = sourceFilter === 'both' || v.source === sourceFilter;
+    return matchesQuery && matchesSource;
+  });
 
   return (
     <div className="min-h-screen bg-background">
