@@ -19,7 +19,7 @@ const Index = () => {
   const shuffled = useMemo(() => [...videos].sort(() => Math.random() - 0.5), [videos]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[linear-gradient(180deg,hsl(32_60%_14%)_0%,hsl(225_15%_10%)_30%,hsl(225_15%_8%)_70%,hsl(225_18%_5%)_100%)]">
       <Navbar />
       <main className="container pb-12">
         {isLoading ? (
