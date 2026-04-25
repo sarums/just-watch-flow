@@ -15,7 +15,7 @@ export function HeroSection({ video }: HeroSectionProps) {
         <img
           src={video.thumbnailUrl}
           alt={video.title}
-          className="w-full h-full object-cover grayscale"
+          className="w-full h-full object-cover"
         />
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />

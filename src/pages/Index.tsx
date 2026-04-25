@@ -19,9 +19,12 @@ const Index = () => {
   const shuffled = useMemo(() => [...videos].sort(() => Math.random() - 0.5), [videos]);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,hsl(32_60%_14%)_0%,hsl(225_15%_10%)_30%,hsl(225_15%_8%)_70%,hsl(225_18%_5%)_100%)]">
+    <div className="relative min-h-screen bg-[hsl(240_10%_4%)] overflow-hidden">
+      {/* Ambient WeTV-style glow */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[600px] bg-[radial-gradient(ellipse_at_top,hsl(280_60%_20%/0.45),transparent_60%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[800px] bg-[radial-gradient(ellipse_at_70%_20%,hsl(320_70%_25%/0.25),transparent_55%)]" />
       <Navbar />
-      <main className="container pb-12">
+      <main className="relative container pb-12">
         {isLoading ? (
           <div className="py-20 text-center text-muted-foreground">Loading videos…</div>
         ) : videos.length === 0 ? (
