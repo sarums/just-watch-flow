@@ -18,9 +18,10 @@ export default function AdminLayout() {
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-[hsl(var(--background))]">
       {/* TOPBAR */}
-      <header className="h-14 bg-card border-b border-border flex items-center justify-between px-6 shrink-0 z-50">
-        <div className="font-['Bebas_Neue'] text-xl tracking-[3px]">
-          CLIPFLOW <span className="text-primary">ADMIN</span>
+      <header className="h-14 border-b border-border flex items-center justify-between px-6 shrink-0 z-50 bg-[linear-gradient(90deg,hsl(225_15%_10%)_0%,hsl(225_18%_14%)_45%,hsl(32_60%_18%)_100%)] shadow-[0_2px_20px_rgba(0,0,0,0.4)]">
+        <div className="font-['Bebas_Neue'] text-xl tracking-[3px] flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-full bg-primary shadow-[0_0_12px_hsl(var(--primary))]" />
+          CLIPFLOW <span className="text-gradient">ADMIN</span>
         </div>
         <div className="flex items-center gap-3">
           <a
