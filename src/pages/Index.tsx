@@ -19,10 +19,7 @@ const Index = () => {
   const shuffled = useMemo(() => [...videos].sort(() => Math.random() - 0.5), [videos]);
 
   return (
-    <div className="relative min-h-screen bg-[hsl(240_10%_4%)] overflow-hidden">
-      {/* Ambient WeTV-style glow */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[600px] bg-[radial-gradient(ellipse_at_top,hsl(280_60%_20%/0.45),transparent_60%)]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[800px] bg-[radial-gradient(ellipse_at_70%_20%,hsl(320_70%_25%/0.25),transparent_55%)]" />
+    <div className="relative min-h-screen bg-black overflow-hidden">
       <Navbar />
       <main className="relative container pb-12">
         {isLoading ? (
