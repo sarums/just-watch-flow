@@ -9,17 +9,20 @@ interface HeroSectionProps {
 
 export function HeroSection({ video }: HeroSectionProps) {
   return (
-    <section className="relative overflow-hidden rounded-2xl mx-4 mt-4 md:mx-0">
+    <section className="relative -mx-4 md:mx-0 overflow-hidden md:rounded-2xl">
       {/* Background Image */}
-      <div className="relative aspect-[21/9] md:aspect-[3/1]">
+      <div className="relative aspect-[16/10] md:aspect-[21/8]">
         <img
           src={video.thumbnailUrl}
           alt={video.title}
           className="w-full h-full object-cover"
         />
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/80 to-transparent" />
+        {/* WeTV-style fades — bleed into pure black on all sides */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/30 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black to-transparent" />
+        <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-black to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black to-transparent" />
       </div>
 
       {/* Content */}
